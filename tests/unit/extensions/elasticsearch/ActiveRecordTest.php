@@ -445,7 +445,15 @@ class ActiveRecordTest extends ElasticSearchTestCase
 
     public function testScriptFields()
     {
-        $orderItems = OrderItem::find()->fields(['quantity', 'subtotal', 'total' => ['script' => "doc['quantity'].value * doc['subtotal'].value"]])->all();
+        $orderItems = OrderItem::find()->fields([
+            'quantity',
+            'subtotal',
+            'total' => [
+                'script' => "doc['quantity'].value * doc['subtotal'].value",
+                'lang' => 'groovy',
+            ]
+        ])->all();
+        $this->assertNotEmpty($orderItems);
         foreach($orderItems as $item) {
             $this->assertEquals($item->subtotal * $item->quantity, $item->total);
         }
@@ -804,6 +812,34 @@ class ActiveRecordTest extends ElasticSearchTestCase
         $this->assertFalse(isset($items[2]));
     }
 
+    /**
+     * https://github.com/yiisoft/yii2/issues/6065
+     */
+    public function testArrayAttributeRelationUnLinkBrokenArray()
+    {
+        /* @var $order Order */
+        $order = Order::find()->where(['id' => 1])->one();
+
+        $itemIds = $order->itemsArray;
+        $removeId = reset($itemIds);
+        $item = Item::get($removeId);
+        $order->unlink('itemsByArrayValue', $item);
+        $this->afterSave();
+
+        $items = $order->itemsByArrayValue;
+        $this->assertEquals(1, count($items));
+        $this->assertFalse(isset($items[$removeId]));
+
+        // check also after refresh
+        $this->assertTrue($order->refresh());
+        $items = $order->itemsByArrayValue;
+        $this->assertEquals(1, count($items));
+        $this->assertFalse(isset($items[$removeId]));
+    }
+
+    /**
+     * @expectedException \yii\base\NotSupportedException
+     */
     public function testArrayAttributeRelationUnLinkAll()
     {
         /* @var $order Order */
@@ -825,6 +861,52 @@ class ActiveRecordTest extends ElasticSearchTestCase
         $this->assertEquals(0, count($items));
     }
 
+    public function testUnlinkAll()
+    {
+        // not supported by elasticsearch
+    }
+
+    /**
+     * @expectedException \yii\base\NotSupportedException
+     */
+    public function testUnlinkAllAndConditionSetNull()
+    {
+        /* @var $customerClass \yii\db\BaseActiveRecord */
+        $customerClass = $this->getCustomerClass();
+        /* @var $orderClass \yii\db\BaseActiveRecord */
+        $orderClass = $this->getOrderWithNullFKClass();
+
+        // in this test all orders are owned by customer 1
+        $orderClass::updateAll(['customer_id' => 1]);
+        $this->afterSave();
+
+        $customer = $customerClass::findOne(1);
+        $this->assertEquals(3, count($customer->ordersWithNullFK));
+        $this->assertEquals(1, count($customer->expensiveOrdersWithNullFK));
+        $this->assertEquals(3, $orderClass::find()->count());
+        $customer->unlinkAll('expensiveOrdersWithNullFK');
+    }
+
+    /**
+     * @expectedException \yii\base\NotSupportedException
+     */
+    public function testUnlinkAllAndConditionDelete()
+    {
+        /* @var $customerClass \yii\db\BaseActiveRecord */
+        $customerClass = $this->getCustomerClass();
+        /* @var $orderClass \yii\db\BaseActiveRecord */
+        $orderClass = $this->getOrderWithNullFKClass();
+
+        // in this test all orders are owned by customer 1
+        $orderClass::updateAll(['customer_id' => 1]);
+        $this->afterSave();
+
+        $customer = $customerClass::findOne(1);
+        $this->assertEquals(3, count($customer->ordersWithNullFK));
+        $this->assertEquals(1, count($customer->expensiveOrdersWithNullFK));
+        $this->assertEquals(3, $orderClass::find()->count());
+        $customer->unlinkAll('expensiveOrdersWithNullFK', true);
+    }
 
     // TODO test AR with not mapped PK
 }

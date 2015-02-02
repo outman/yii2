@@ -58,7 +58,7 @@ namespace yii\db;
  * A relation is specified by [[link]] which represents the association between columns
  * of different tables; and the multiplicity of the relation is indicated by [[multiple]].
  *
- * If a relation involves a pivot table, it may be specified by [[via()]] or [[viaTable()]] method.
+ * If a relation involves a junction table, it may be specified by [[via()]] or [[viaTable()]] method.
  * These methods may only be called in a relational context. Same is true for [[inverseOf()]], which
  * marks a relation as inverse of another relation and [[onCondition()]] which adds a condition that
  * is to be added to relational query join condition.
@@ -98,7 +98,7 @@ class ActiveQuery extends Query implements ActiveQueryInterface
 
     /**
      * Constructor.
-     * @param array $modelClass the model class associated with this query
+     * @param string $modelClass the model class associated with this query
      * @param array $config configurations to be applied to the newly created query object
      */
     public function __construct($modelClass, $config = [])
@@ -152,7 +152,7 @@ class ActiveQuery extends Query implements ActiveQueryInterface
         }
 
         if (empty($this->select) && !empty($this->join)) {
-            foreach ((array)$this->from as $alias => $table) {
+            foreach ((array) $this->from as $alias => $table) {
                 if (is_string($alias)) {
                     $this->select = ["$alias.*"];
                 } elseif (is_string($table)) {
@@ -175,8 +175,8 @@ class ActiveQuery extends Query implements ActiveQueryInterface
             $where = $this->where;
 
             if ($this->via instanceof self) {
-                // via pivot table
-                $viaModels = $this->via->findPivotRows([$this->primaryModel]);
+                // via junction table
+                $viaModels = $this->via->findJunctionRows([$this->primaryModel]);
                 $this->filterByModels($viaModels);
             } elseif (is_array($this->via)) {
                 // via relation
@@ -330,7 +330,7 @@ class ActiveQuery extends Query implements ActiveQueryInterface
      * This method differs from [[with()]] in that it will build up and execute a JOIN SQL statement
      * for the primary table. And when `$eagerLoading` is true, it will call [[with()]] in addition with the specified relations.
      *
-     * @param array $with the relations to be joined. Each array element represents a single relation.
+     * @param string|array $with the relations to be joined. Each array element represents a single relation.
      * The array keys are relation names, and the array values are the corresponding anonymous functions that
      * can be used to modify the relation queries on-the-fly. If a relation query does not need modification,
      * you may use the relation name as the array value. Sub-relations can also be specified (see [[with()]]).
@@ -407,7 +407,7 @@ class ActiveQuery extends Query implements ActiveQueryInterface
      * Inner joins with the specified relations.
      * This is a shortcut method to [[joinWith()]] with the join type set as "INNER JOIN".
      * Please refer to [[joinWith()]] for detailed usage of this method.
-     * @param array $with the relations to be joined with
+     * @param string|array $with the relations to be joined with
      * @param boolean|array $eagerLoading whether to eager loading the relations
      * @return static the query object itself
      * @see joinWith()
@@ -655,9 +655,9 @@ class ActiveQuery extends Query implements ActiveQueryInterface
     }
 
     /**
-     * Specifies the pivot table for a relational query.
+     * Specifies the junction table for a relational query.
      *
-     * Use this method to specify a pivot table when declaring a relation in the [[ActiveRecord]] class:
+     * Use this method to specify a junction table when declaring a relation in the [[ActiveRecord]] class:
      *
      * ```php
      * public function getItems()
@@ -667,11 +667,11 @@ class ActiveQuery extends Query implements ActiveQueryInterface
      * }
      * ```
      *
-     * @param string $tableName the name of the pivot table.
-     * @param array $link the link between the pivot table and the table associated with [[primaryModel]].
-     * The keys of the array represent the columns in the pivot table, and the values represent the columns
+     * @param string $tableName the name of the junction table.
+     * @param array $link the link between the junction table and the table associated with [[primaryModel]].
+     * The keys of the array represent the columns in the junction table, and the values represent the columns
      * in the [[primaryModel]] table.
-     * @param callable $callable a PHP callback for customizing the relation associated with the pivot table.
+     * @param callable $callable a PHP callback for customizing the relation associated with the junction table.
      * Its signature should be `function($query)`, where `$query` is the query to be customized.
      * @return static
      * @see via()

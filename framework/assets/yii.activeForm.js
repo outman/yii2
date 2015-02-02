@@ -24,44 +24,60 @@
 
     var events = {
         /**
-         * beforeValidate event is triggered before validating the whole form and each attribute.
+         * beforeValidate event is triggered before validating the whole form.
          * The signature of the event handler should be:
-         *     function (event, messages, deferreds, attribute)
+         *     function (event, messages, deferreds)
          * where
          *  - event: an Event object.
-         *  - messages: error messages. When attribute is undefined, this parameter is an associative array
-         *    with keys being attribute IDs and values being error messages for the corresponding attributes.
-         *    When attribute is given, this parameter is an array of the error messages for that attribute.
+         *  - messages: an associative array with keys being attribute IDs and values being error message arrays
+         *    for the corresponding attributes.
          *  - deferreds: an array of Deferred objects. You can use deferreds.add(callback) to add a new deferred validation.
-         *  - attribute: an attribute object. Please refer to attributeDefaults for the structure.
-         *    If this is undefined, it means the event is triggered before validating the whole form.
-         *    Otherwise it means the event is triggered before validating the specified attribute.
          *
-         * If the handler returns a boolean false, it will stop further validation after this event.
+         * If the handler returns a boolean false, it will stop further form validation after this event. And as
+         * a result, afterValidate event will not be triggered.
          */
         beforeValidate: 'beforeValidate',
         /**
-         * afterValidate event is triggered after validating the whole form and each attribute.
+         * afterValidate event is triggered after validating the whole form.
          * The signature of the event handler should be:
-         *     function (event, messages, attribute)
+         *     function (event, messages)
          * where
          *  - event: an Event object.
-         *  - messages: error messages. When attribute is undefined, this parameter is an associative array
-         *    with keys being attribute IDs and values being error messages for the corresponding attributes.
-         *    When attribute is given, this parameter is an array of the error messages for that attribute.
-         *    If the array length is greater than 0, it means the attribute has validation errors.
-         *  - attribute: an attribute object. Please refer to attributeDefaults for the structure.
-         *    If this is undefined, it means the event is triggered before validating the whole form.
-         *    Otherwise it means the event is triggered before validating the specified attribute.
+         *  - messages: an associative array with keys being attribute IDs and values being error message arrays
+         *    for the corresponding attributes.
          */
         afterValidate: 'afterValidate',
         /**
-         * beforeSubmit event is triggered before submitting the form (after all validations pass).
+         * beforeValidateAttribute event is triggered before validating an attribute.
+         * The signature of the event handler should be:
+         *     function (event, attribute, messages, deferreds)
+         * where
+         *  - event: an Event object.
+         *  - attribute: the attribute to be validated. Please refer to attributeDefaults for the structure of this parameter.
+         *  - messages: an array to which you can add validation error messages for the specified attribute.
+         *  - deferreds: an array of Deferred objects. You can use deferreds.add(callback) to add a new deferred validation.
+         *
+         * If the handler returns a boolean false, it will stop further validation of the specified attribute.
+         * And as a result, afterValidateAttribute event will not be triggered.
+         */
+        beforeValidateAttribute: 'beforeValidateAttribute',
+        /**
+         * afterValidateAttribute event is triggered after validating the whole form and each attribute.
+         * The signature of the event handler should be:
+         *     function (event, attribute, messages)
+         * where
+         *  - event: an Event object.
+         *  - attribute: the attribute being validated. Please refer to attributeDefaults for the structure of this parameter.
+         *  - messages: an array to which you can add additional validation error messages for the specified attribute.
+         */
+        afterValidateAttribute: 'afterValidateAttribute',
+        /**
+         * beforeSubmit event is triggered before submitting the form after all validations have passed.
          * The signature of the event handler should be:
          *     function (event)
          * where event is an Event object.
          *
-         * If the handler returns a boolean false, it will stop further validation after this event.
+         * If the handler returns a boolean false, it will stop form submission.
          */
         beforeSubmit: 'beforeSubmit',
         /**
@@ -129,13 +145,15 @@
         // whether to perform validation when the user is typing.
         validateOnType: false,
         // number of milliseconds that the validation should be delayed when a user is typing in the input field.
-        validationDelay: 200,
+        validationDelay: 500,
         // whether to enable AJAX-based validation.
         enableAjaxValidation: false,
         // function (attribute, value, messages), the client-side validation function.
         validate: undefined,
         // status of the input field, 0: empty, not entered before, 1: validated, 2: pending validation, 3: validating
         status: 0,
+        // whether the validation is cancelled by beforeValidateAttribute event handler
+        cancelled: false,
         // the value of the input
         value: undefined
     };
@@ -209,6 +227,14 @@
             return attribute;
         },
 
+        // manually trigger the validation of the attribute with the specified ID
+        validateAttribute: function (id) {
+            var attribute = methods.find(id);
+            if (attribute != undefined) {
+                validateAttribute($(this), attribute, true);
+            }
+        },
+
         // find an attribute config based on the specified attribute ID
         find: function (id) {
             var attributes = $(this).data('yiiActiveForm').attributes,
@@ -233,14 +259,16 @@
             return this.data('yiiActiveForm');
         },
 
+        // validate all applicable inputs in the form
         validate: function () {
             var $form = $(this),
                 data = $form.data('yiiActiveForm'),
                 needAjaxValidation = false,
                 messages = {},
-                deferreds = deferredArray();
+                deferreds = deferredArray(),
+                submitting = data.submitting;
 
-            if (data.submitting) {
+            if (submitting) {
                 var event = $.Event(events.beforeValidate);
                 $form.trigger(event, [messages, deferreds]);
                 if (event.result === false) {
@@ -251,6 +279,7 @@
 
             // client-side validation
             $.each(data.attributes, function () {
+                this.cancelled = false;
                 // perform validation only if the form is being submitted or if an attribute is pending validation
                 if (data.submitting || this.status === 2 || this.status === 3) {
                     var msg = messages[this.id];
@@ -258,8 +287,8 @@
                         msg = [];
                         messages[this.id] = msg;
                     }
-                    var event = $.Event(events.beforeValidate);
-                    $form.trigger(event, [msg, deferreds, this]);
+                    var event = $.Event(events.beforeValidateAttribute);
+                    $form.trigger(event, [this, msg, deferreds]);
                     if (event.result !== false) {
                         if (this.validate) {
                             this.validate(this, getValue($form, this), msg, deferreds);
@@ -267,6 +296,8 @@
                         if (this.enableAjaxValidation) {
                             needAjaxValidation = true;
                         }
+                    } else {
+                        this.cancelled = true;
                     }
                 }
             });
@@ -279,10 +310,7 @@
                         delete messages[i];
                     }
                 }
-                if (needAjaxValidation && (!data.submitting || $.isEmptyObject(messages))) {
-                    // Perform ajax validation when at least one input needs it.
-                    // If the validation is triggered by form submission, ajax validation
-                    // should be done only when all inputs pass client validation
+                if (needAjaxValidation) {
                     var $button = data.submitObject,
                         extData = '&' + data.settings.ajaxParam + '=' + $form.prop('id');
                     if ($button && $button.length && $button.prop('name')) {
@@ -302,13 +330,13 @@
                         success: function (msgs) {
                             if (msgs !== null && typeof msgs === 'object') {
                                 $.each(data.attributes, function () {
-                                    if (!this.enableAjaxValidation) {
+                                    if (!this.enableAjaxValidation || this.cancelled) {
                                         delete msgs[this.id];
                                     }
                                 });
-                                updateInputs($form, $.extend(messages, msgs));
+                                updateInputs($form, $.extend(messages, msgs), submitting);
                             } else {
-                                updateInputs($form, messages);
+                                updateInputs($form, messages, submitting);
                             }
                         },
                         error: function () {
@@ -318,10 +346,10 @@
                 } else if (data.submitting) {
                     // delay callback so that the form can be submitted without problem
                     setTimeout(function () {
-                        updateInputs($form, messages);
+                        updateInputs($form, messages, submitting);
                     }, 200);
                 } else {
-                    updateInputs($form, messages);
+                    updateInputs($form, messages, submitting);
                 }
             });
         },
@@ -331,11 +359,11 @@
                 data = $form.data('yiiActiveForm');
 
             if (data.validated) {
+                data.submitting = false;
                 var event = $.Event(events.beforeSubmit);
-                $form.trigger(event, [$form]);
+                $form.trigger(event);
                 if (event.result === false) {
                     data.validated = false;
-                    data.submitting = false;
                     return false;
                 }
                 return true;   // continue submitting the form since validation passes
@@ -368,7 +396,7 @@
                     );
                     $container.find(this.error).html('');
                 });
-                $form.find(data.settings.summary).hide().find('ul').html('');
+                $form.find(data.settings.errorSummary).hide().find('ul').html('');
             }, 1);
         }
     };
@@ -376,7 +404,7 @@
     var watchAttribute = function ($form, attribute) {
         var $input = findInput($form, attribute);
         if (attribute.validateOnChange) {
-            $input.on('change.yiiActiveForm',function () {
+            $input.on('change.yiiActiveForm', function () {
                 validateAttribute($form, attribute, false);
             });
         }
@@ -390,7 +418,7 @@
         if (attribute.validateOnType) {
             $input.on('keyup.yiiActiveForm', function () {
                 if (attribute.value !== getValue($form, attribute)) {
-                    validateAttribute($form, attribute, false);
+                    validateAttribute($form, attribute, false, attribute.validationDelay);
                 }
             });
         }
@@ -400,7 +428,7 @@
         findInput($form, attribute).off('.yiiActiveForm');
     };
 
-    var validateAttribute = function ($form, attribute, forceValidate) {
+    var validateAttribute = function ($form, attribute, forceValidate, validationDelay) {
         var data = $form.data('yiiActiveForm');
 
         if (forceValidate) {
@@ -430,7 +458,7 @@
                 }
             });
             methods.validate.call($form);
-        }, data.settings.validationDelay);
+        }, validationDelay ? validationDelay : 200);
     };
     
     /**
@@ -450,14 +478,15 @@
      * Updates the error messages and the input containers for all applicable attributes
      * @param $form the form jQuery object
      * @param messages array the validation error messages
+     * @param submitting whether this method is called after validation triggered by form submission
      */
-    var updateInputs = function ($form, messages) {
+    var updateInputs = function ($form, messages, submitting) {
         var data = $form.data('yiiActiveForm');
 
-        if (data.submitting) {
+        if (submitting) {
             var errorInputs = [];
             $.each(data.attributes, function () {
-                if (updateInput($form, this, messages)) {
+                if (!this.cancelled && updateInput($form, this, messages)) {
                     errorInputs.push(this.input);
                 }
             });
@@ -467,7 +496,7 @@
             updateSummary($form, messages);
 
             if (errorInputs.length) {
-                var top = $form.find(errorInputs.join(',')).first().offset().top;
+                var top = $form.find(errorInputs.join(',')).first().closest(':visible').offset().top;
                 var wtop = $(window).scrollTop();
                 if (top < wtop || top > wtop + $(window).height) {
                     $(window).scrollTop(top);
@@ -486,7 +515,7 @@
             }
         } else {
             $.each(data.attributes, function () {
-                if (this.status === 2 || this.status === 3) {
+                if (!this.cancelled && (this.status === 2 || this.status === 3)) {
                     updateInput($form, this, messages);
                 }
             });
@@ -508,7 +537,7 @@
         if (!$.isArray(messages[attribute.id])) {
             messages[attribute.id] = [];
         }
-        $form.trigger(events.afterValidate, [messages[attribute.id], attribute]);
+        $form.trigger(events.afterValidateAttribute, [attribute, messages[attribute.id]]);
 
         attribute.status = 1;
         if ($input.length) {
