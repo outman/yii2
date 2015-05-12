@@ -25,7 +25,7 @@ its corresponding fully qualified PHP class name (without the leading backslash)
 be [autoloadable](concept-autoloading.md). It usually specifies where the assets are located, what CSS and 
 JavaScript files the bundle contains, and how the bundle depends on other bundles.
 
-The following code defines the main asset bundle used by [the basic application template](start-installation.md):
+The following code defines the main asset bundle used by [the basic project template](start-installation.md):
 
 ```php
 <?php
@@ -370,6 +370,30 @@ when it is being published. This is faster than file copying and can also ensure
 always up-to-date.
 
 
+### Cache Busting <span id="cache-busting"></span>
+
+For Web application running in production mode, it is a common practice to enable HTTP caching for assets and other
+static resources. A drawback of this practice is that whenever you modify an asset and deploy it to production, a user
+client may still use the old version due to the HTTP caching. To overcome this drawback, you may use the cache busting
+feature, which was introduced in version 2.0.3, by configuring [[yii\web\AssetManager]] like the following:
+  
+```php
+return [
+    // ...
+    'components' => [
+        'assetManager' => [
+            'appendTimestamp' => true,
+        ],
+    ],
+];
+```
+
+By doing so, the URL of every published asset will be appended with its last modification timestamp. For example,
+the URL to `yii.js` may look like `/assets/5515a87c/yii.js?v=1423448645"`, where the parameter `v` represents the
+last modification timestamp of the `yii.js` file. Now if you modify an asset, its URL will be changed, too, which causes
+the client to fetch the latest version of the asset.
+
+
 ## Commonly Used Asset Bundles <span id="common-asset-bundles"></span>
 
 The core Yii code has defined many asset bundles. Among them, the following bundles are commonly used and may
@@ -639,3 +663,55 @@ the last subsection.
 
 > Info: Using the `asset` command is not the only option to automate the asset combining and compressing process.
   You can use the excellent task runner tool [grunt](http://gruntjs.com/) to achieve the same goal.
+
+
+### Grouping Asset Bundles <span id="grouping-asset-bundles"></span>
+
+In the last subsection, we have explained how to combine all asset bundles into a single one in order to minimize
+the HTTP requests for asset files referenced in an application. This is not always desirable in practice. For example,
+imagine your application has a "front end" as well as a "back end", each of which uses a different set of JavaScript 
+and CSS files. In this case, combining all asset bundles from both ends into a single one does not make sense, 
+because the asset bundles for the "front end" are not used by the "back end" and it would be a waste of network
+bandwidth to send the "back end" assets when a "front end" page is requested.
+ 
+To solve the above problem, you can divide asset bundles into groups and combine asset bundles for each group.
+The following configuration shows how you can group asset bundles: 
+
+```php
+return [
+    ...
+    // Specify output bundles with groups:
+    'targets' => [
+        'allShared' => [
+            'js' => 'js/all-shared-{hash}.js',
+            'css' => 'css/all-shared-{hash}.css',
+            'depends' => [
+                // Include all assets shared between 'backend' and 'frontend'
+                'yii\web\YiiAsset',
+                'app\assets\SharedAsset',
+            ],
+        ],
+        'allBackEnd' => [
+            'js' => 'js/all-{hash}.js',
+            'css' => 'css/all-{hash}.css',
+            'depends' => [
+                // Include only 'backend' assets:
+                'app\assets\AdminAsset'
+            ],
+        ],
+        'allFrontEnd' => [
+            'js' => 'js/all-{hash}.js',
+            'css' => 'css/all-{hash}.css',
+            'depends' => [], // Include all remaining assets
+        ],
+    ],
+    ...
+];
+```
+
+As you can see, the asset bundles are divided into three groups: `allShared`, `allBackEnd` and `allFrontEnd`.
+They each depends on an appropriate set of asset bundles. For example, `allBackEnd` depends on `app\assets\AdminAsset`.
+When running `asset` command with this configuration, it will combine asset bundles according to the above specification.
+
+> Info: You may leave the `depends` configuration empty for one of the target bundle. By doing so, that particular
+  asset bundle will depend on all of the remaining asset bundles that other target bundles do not depend on.

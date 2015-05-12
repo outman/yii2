@@ -218,6 +218,10 @@ foreach ($posts as $post) {
 Note that you can use array notation even if `asArray` wasn't specified and you're
 working with AR objects.
 
+### Composer autoloader optimization
+
+In order to improve overall performance you can execute `composer dumpautoload -o` to optimize Composer autoloader.
+
 ### Processing data in background
 
 In order to respond to user requests faster you can process heavy parts of the
@@ -243,6 +247,6 @@ right after all jobs before it are done.
 If nothing helps, never assume what may fix performance problem. Always profile your code instead before changing
 anything. The following tools may be helpful:
 
-- [Yii debug toolbar and debugger](tool-debugger.md)
+- [Yii debug toolbar and debugger](https://github.com/yiisoft/yii2-debug/blob/master/docs/guide/README.md)
 - [XDebug profiler](http://xdebug.org/docs/profiler)
 - [XHProf](http://www.php.net/manual/en/book.xhprof.php)

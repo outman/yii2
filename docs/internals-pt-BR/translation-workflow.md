@@ -74,7 +74,7 @@ Regras e Observações
 
 - action — ação
 - application system - sistema
-- application template — template de aplicação
+- project template — template de projetos
 - controller — controller (controlador)
 - eager loading — eager loading (carregamento na inicialização)
 - lazy loading — lazy loading (carregamento retardado)
@@ -88,6 +88,10 @@ Regras e Observações
 - attribute label - label do atributo
 - inline action — ação inline
 - standalone action — ação standalone
+- advanced project template — template avançado de projetos
+- basic project template — template básico de projetos
+- behaviors — behaviors (comportamentos)
+- pretty URL — URL amigável (pretty URL)
 
 ### Termos Sem Tradução
 
@@ -105,3 +109,5 @@ Regras e Observações
 - backend
 - frontend
 - web service
+- template
+- query string

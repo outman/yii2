@@ -1,8 +1,8 @@
 Generating Code with Gii
 ========================
 
-This section will describe how to use [Gii](tool-gii.md) to automatically generate  code
-that implements some common Web site features. Using Gii to auto-generate code is simply a matter of entering the right information per to the instructions shown on the Gii Web pages.
+This section will describe how to use [Gii](tool-gii.md) to automatically generate code
+that implements some common Web site features. Using Gii to auto-generate code is simply a matter of entering the right information per the instructions shown on the Gii Web pages.
 
 Through this tutorial, you will learn how to:
 
@@ -15,7 +15,7 @@ Through this tutorial, you will learn how to:
 Starting Gii <span id="starting-gii"></span>
 ------------
 
-[Gii](tool-gii.md) is provided in Yii as a [module](structure-modules.md). You can enable Gii
+[Gii](https://github.com/yiisoft/yii2-gii/blob/master/docs/guide/README.md) is provided in Yii as a [module](structure-modules.md). You can enable Gii
 by configuring it in the [[yii\base\Application::modules|modules]] property of the application. Depending upon how you created your application, you may find the following code is already provided in the `config/web.php` configuration file:
 
 ```php

@@ -29,6 +29,7 @@ class QueryBuilder extends \yii\db\QueryBuilder
         Schema::TYPE_INTEGER => 'int',
         Schema::TYPE_BIGINT => 'bigint',
         Schema::TYPE_FLOAT => 'float',
+        Schema::TYPE_DOUBLE => 'float',
         Schema::TYPE_DECIMAL => 'decimal',
         Schema::TYPE_DATETIME => 'datetime',
         Schema::TYPE_TIMESTAMP => 'timestamp',
@@ -228,7 +229,7 @@ class QueryBuilder extends \yii\db\QueryBuilder
     protected function buildSubqueryInCondition($operator, $columns, $values, &$params)
     {
         if (is_array($columns)) {
-            throw new NotSupportedException(__METHOD__ . ' is not supported by SQLite.');
+            throw new NotSupportedException(__METHOD__ . ' is not supported by MSSQL.');
         }
         return parent::buildSubqueryInCondition($operator, $columns, $values, $params);
     }

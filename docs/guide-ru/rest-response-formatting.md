@@ -14,7 +14,7 @@
 
 ## Согласование содержимого <span id="content-negotiation"></span>
 
-Yii поддерживает согласование содержимого с помощью фильтра [yii\filters\ContentNegotiator]]. Базовый класс
+Yii поддерживает согласование содержимого с помощью фильтра [[yii\filters\ContentNegotiator]]. Базовый класс
 контроллера RESTful API - [[yii\rest\Controller]] - использует этот фильтр под именем `contentNegotiator`.
 Фильтр обеспечивает соответствие формата ответа и определяет используемый язык. Например, если RESTful API запрос
 содержит следующий заголовок:
@@ -136,9 +136,15 @@ Content-Type: application/json; charset=UTF-8
         ...
     ],
     "_links": {
-        "self": "http://localhost/users?page=1",
-        "next": "http://localhost/users?page=2",
-        "last": "http://localhost/users?page=50"
+        "self": {
+            "href": "http://localhost/users?page=1"
+        },
+        "next": {
+            "href": "http://localhost/users?page=2"
+        },
+        "last": {
+            "href": "http://localhost/users?page=50"
+        }
     },
     "_meta": {
         "totalCount": 1000,

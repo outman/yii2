@@ -135,7 +135,7 @@ which may reduce the overhead involved in retrieving cached data. The APIs [[yii
 and [[yii\caching\Cache::madd()|madd()]] are provided to exploit this feature. In case the underlying cache storage
 does not support this feature, it will be simulated.
 
-Because [[yii\caching\Cache]] implements `ArrayAccess`, a cache component can be used like an array. The followings
+Because [[yii\caching\Cache]] implements `ArrayAccess`, a cache component can be used like an array. The following
 are some examples:
 
 ```php
@@ -246,7 +246,7 @@ Below is a summary of the available cache dependencies:
 Query caching is a special caching feature built on top of data caching. It is provided to cache the result
 of database queries.
 
-Query caching requires a [[yii\db\Connection|DB connection]] and a valid `cache` application component.
+Query caching requires a [[yii\db\Connection|DB connection]] and a valid `cache` [application component](#cache-components).
 The basic usage of query caching is as follows, assuming `$db` is a [[yii\db\Connection]] instance:
 
 ```php
@@ -259,7 +259,13 @@ $result = $db->cache(function ($db) {
 });
 ```
 
-Query caching can be used for [DAO](db-dao.md) as well as [ActiveRecord](db-active-record.md).
+Query caching can be used for [DAO](db-dao.md) as well as [ActiveRecord](db-active-record.md):
+
+```php
+$result = Customer::getDb()->cache(function ($db) {
+    return Customer::find()->where(['id' => 1])->one();
+});
+```
 
 > Info: Some DBMS (e.g. [MySQL](http://dev.mysql.com/doc/refman/5.1/en/query-cache.html))
   also support query caching on the DB server side. You may choose to use either query caching mechanism.

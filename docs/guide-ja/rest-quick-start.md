@@ -19,12 +19,12 @@ Yii は、RESTful ウェブサービス API を実装する仕事を簡単にす
 以下においては、例を使って、どのようにして最小限のコーディング労力で一組の RESTful API を構築することが出来るかを説明します。
 
 ユーザのデータを RESTful API によって公開したいと仮定しましょう。
-ユーザのデータは `user` という DB テーブルに保存されており、それにアクセスするための [[yii\db\ActiveRecord|ActiveRecord]] クラス `app\models\User` が既に作成済みであるとします。
+ユーザのデータは `user` という DB テーブルに保存されており、それにアクセスするための [アクティブレコード](db-active-record.md) クラス `app\models\User` が既に作成済みであるとします。
 
 
 ## コントローラを作成する <span id="creating-controller"></span>
 
-最初に、コントローラクラス `app\controllers\UserController` を次のようにして作成します。
+最初に、[コントローラ](structure-controllers.md) クラス `app\controllers\UserController` を次のようにして作成します。
 
 ```php
 namespace app\controllers;
@@ -37,8 +37,11 @@ class UserController extends ActiveController
 }
 ```
 
-このコントローラクラスは、[[yii\rest\ActiveController]] を拡張するものです。
+このコントローラクラスは、よく使用される一揃いの RESTful アクションを実装した [[yii\rest\ActiveController]] を拡張するものです。
 [[yii\rest\ActiveController::modelClass|modelClass]] を `app\models\User` と指定することによって、データの取得と操作にどのモデルが使用できるかをコントローラに教えてやります。
+The controller class extends from [[yii\rest\ActiveController]], which implements a common set of RESTful actions.
+By specifying [[yii\rest\ActiveController::modelClass|modelClass]]
+as `app\models\User`, the controller knows which model can be used for fetching and manipulating data.
 
 
 ## URL 規則を構成する <span id="configuring-url-rules"></span>
@@ -61,7 +64,7 @@ class UserController extends ActiveController
 
 ## JSON の入力を可能にする <span id="enabling-json-input"></span>
 
-API が JSON 形式で入力データを受け取ることが出来るように、`request` アプリケーションコンポーネントの [[yii\web\Request::$parsers|parsers]] プロパティを構成して、JSON 入力のために [[yii\web\JsonParser]] を使うようにします。
+API が JSON 形式で入力データを受け取ることが出来るように、`request` [アプリケーションコンポーネント](structure-application-components.md) の [[yii\web\Request::$parsers|parsers]] プロパティを構成して、JSON 入力のために [[yii\web\JsonParser]] を使うようにします。
 
 ```php
 'request' => [
@@ -90,8 +93,8 @@ API が JSON 形式で入力データを受け取ることが出来るように�
 * `OPTIONS /users`: エンドポイント `/users` に関してサポートされている動詞を示す
 * `OPTIONS /users/123`: エンドポイント `/users/123` に関してサポートされている動詞を示す
 
-> Info|情報: Yii は、エンドポイントとして使用されるコントローラの名前を自動的に複数形にします。
-> これは [[yii\rest\UrlRule::$pluralize]] プロパティを使って構成することが可能です。
+> Info|情報: Yii はコントローラの名前を自動的に複数形にしてエンドポイントとして使用します。
+> この振る舞いは [[yii\rest\UrlRule::$pluralize]] プロパティを使って構成することが可能です。
 
 作成した API は、次のように、`curl` コマンドでアクセスすることが出来ます。
 
@@ -170,7 +173,7 @@ Content-Type: application/json; charset=UTF-8
 ```
 
 > Tip|ヒント: URL `http://localhost/users` を入力すれば、ウェブブラウザ経由で API にアクセスすることも出来ます。
-  ただし、特殊なリクエストヘッダを送信するためには、何らかのブラウザプラグインが必要になるかも知れません。
+  ただし、特殊なリクエストヘッダを送信するためには、何らかのブラウザプラグインが必要になるでしょう。
 
 ご覧のように、レスポンスヘッダの中には、総ユーザ数やページ数などの情報が書かれています。
 また、データの他のページへナビゲートすることを可能にするリンクもあります。
@@ -195,4 +198,4 @@ Yii の RESTful API フレームワークを使う場合は、API エンドポ�
 
 [[yii\rest\UrlRule]] を使って API エンドポイントへのルーティングを簡単にすることが出来ます。
 
-これは必須ではありませんが、RESTful API は、保守を容易にするために、ウェブのフロントエンドやバックエンドとは別の独立したアプリケーションとして開発することを推奨します。
+これは要求されてはいませんが、RESTful API は、保守を容易にするために、ウェブのフロントエンドやバックエンドとは別の独立したアプリケーションとして開発することが推奨されます。

@@ -27,6 +27,7 @@ section for more details about the class file naming convention.
 
 namespace app\models;
 
+use Yii;
 use yii\base\Model;
 
 class EntryForm extends Model
@@ -97,7 +98,7 @@ class SiteController extends Controller
 
     public function actionEntry()
     {
-        $model = new EntryForm;
+        $model = new EntryForm();
 
         if ($model->load(Yii::$app->request->post()) && $model->validate()) {
             // valid data received in $model
